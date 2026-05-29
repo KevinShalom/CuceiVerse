@@ -34,3 +34,8 @@ tramites_extracted.txt
 tramites_utf8.txt
 read_docx.ps1
 
+# Startup scripts
+START_ALL.*
+STOP_ALL.*
+
+

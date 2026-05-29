@@ -42,9 +42,94 @@ El repositorio está estructurado como un sistema distribuido y modular que cons
 
 ---
 
-## 🛠️ Instrucciones de Inicio Rápido (Local)
+## 🚀 Instalación y Ejecución
 
-El proyecto incluye scripts preparados para facilitar la inicialización y el apagado local de todos los servicios simultáneamente:
+Al ser una arquitectura modular, cada servicio se instala y se ejecuta de manera independiente desde su respectivo directorio. Asegúrate de tener instalado **Node.js (v18+)**, **Python 3.9+**, **Docker** y una instancia de **PostgreSQL** activa.
 
-* **Iniciar todos los servicios:** Ejecuta el archivo `START_ALL.bat` o el script de PowerShell `START_ALL.ps1`.
-* **Detener todos los servicios:** Ejecuta el archivo `STOP_ALL.bat` o el script de PowerShell `STOP_ALL.ps1`.
+---
+
+### 1. CuceiVerse WEB (Core & Frontend)
+
+Este módulo contiene tanto el frontend (React) como el backend principal (NestJS).
+
+#### **Backend (NestJS)**
+1. Navega al directorio:
+   ```bash
+   cd "CuceiVerse WEB/cuceiverse-backend"
+   ```
+2. Instala las dependencias:
+   ```bash
+   npm install
+   ```
+3. Configura tus variables de entorno creando un archivo `.env` en la raíz de la carpeta basándote en la base de datos que estés utilizando:
+   ```env
+   DATABASE_URL="postgresql://usuario:contraseña@localhost:5432/cuceiverse?schema=public"
+   JWT_SECRET="tu_jwt_secret"
+   ```
+4. Genera el cliente de Prisma y ejecuta las migraciones de la base de datos:
+   ```bash
+   npx prisma generate
+   npx prisma migrate dev
+   ```
+5. Inicia el servidor en modo desarrollo:
+   ```bash
+   npm run start:dev
+   ```
+
+#### **Frontend (React)**
+1. Navega al directorio:
+   ```bash
+   cd "CuceiVerse WEB/cuceiverse-web"
+   ```
+2. Instala las dependencias:
+   ```bash
+   npm install
+   ```
+3. Ejecuta el servidor de desarrollo local:
+   ```bash
+   npm run dev
+   ```
+
+---
+
+### 2. Horarios API (Microservicio de Scraping)
+
+Este microservicio se encarga de la extracción automatizada de horarios mediante Python.
+
+1. Navega al directorio:
+   ```bash
+   cd "Horarios API"
+   ```
+2. Se recomienda crear e inicializar un entorno virtual:
+   ```bash
+   python -m venv venv
+   # En Windows:
+   .\venv\Scripts\activate
+   # En macOS/Linux:
+   source venv/bin/activate
+   ```
+3. Instala los requerimientos:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Ejecuta el servicio:
+   ```bash
+   python main.py
+   ```
+
+---
+
+### 3. habbo-avatar-generator (Servicio de Gamificación)
+
+Este servicio está preparado para ser levantado rápidamente mediante contenedores Docker.
+
+1. Navega al directorio:
+   ```bash
+   cd "habbo-avatar-generator"
+   ```
+2. Levanta el contenedor de Docker:
+   ```bash
+   docker compose up --build
+   ```
+   *Nota: Esto iniciará el generador de avatares en el puerto configurado dentro de la receta de Docker.*
+

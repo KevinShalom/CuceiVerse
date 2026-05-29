@@ -1,0 +1,46 @@
+services:
+  assets-init:
+    build:
+      context: ./assets-init
+    environment:
+      - ASSETS_REPO=${ASSETS_REPO:-https://github.com/sphynxkitten/nitro-assets.git}
+      - ASSETS_BRANCH=${ASSETS_BRANCH:-master}
+    volumes:
+      - ./data:/data
+    restart: "no"
+
+  imager:
+    build:
+      context: ./imager
+    depends_on:
+      assets-init:
+        condition: service_completed_successfully
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=3030
+      - IMAGER_PATH=/imaging
+      - AVATAR_SAVE_PATH=/data/render-cache
+      - AVATAR_ACTIONS_URL=/data/nitro-assets/gamedata/json/HabboAvatarActions.json
+      - AVATAR_FIGUREDATA_URL=/data/nitro-assets/gamedata/json/FigureData.json
+      - AVATAR_FIGUREMAP_URL=/data/nitro-assets/gamedata/json/FigureMap.json
+      - AVATAR_EFFECTMAP_URL=/data/nitro-assets/gamedata/json/EffectMap.json
+      # Carpeta combinada (clothes + effects) creada por assets-init
+      - AVATAR_ASSET_URL=/data/assets/%libname%.nitro
+    volumes:
+      - ./data:/data
+    ports:
+      - "${IMAGER_PORT:-3030}:3030"
+
+  web:
+    build:
+      context: ./web
+    depends_on:
+      - imager
+    environment:
+      - PORT=3000
+      - IMAGER_INTERNAL_URL=http://imager:3030
+      - FIGUREDATA_PATH=/data/nitro-assets/gamedata/json/FigureData.json
+    volumes:
+      - ./data:/data:ro
+    ports:
+      - "${WEB_PORT:-3000}:3000"

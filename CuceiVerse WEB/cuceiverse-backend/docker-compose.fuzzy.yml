@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cuceiverse-postgres-fuzzy
+    environment:
+      POSTGRES_DB: cuceiverse_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - cuceiverse_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cuceiverse_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  soft-computing:
+    build:
+      context: ../cuceiverse-soft-computing-service
+      dockerfile: Dockerfile
+    container_name: cuceiverse-soft-computing
+    ports:
+      - "8010:8010"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8010/health', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cuceiverse-backend-fuzzy
+    depends_on:
+      postgres:
+        condition: service_healthy
+      soft-computing:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/cuceiverse_dev
+      JWT_SECRET: change-me
+      JWT_EXPIRES_IN: 7d
+      BCRYPT_SALT_ROUNDS: "10"
+      SIIAU_MODE: fixture
+      SOFT_COMPUTING_URL: http://soft-computing:8010
+      SEED_SKIP_POIS: "false"
+    ports:
+      - "3000:3000"
+
+volumes:
+  cuceiverse_pg_data:

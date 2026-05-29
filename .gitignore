@@ -1,0 +1,28 @@
+# Exclude node modules and build outputs
+**/node_modules/
+**/dist/
+**/.next/
+**/build/
+**/out/
+**/bin/
+**/obj/
+
+# Exclude environment variables and secrets
+**/.env
+**/.env.local
+**/.env.*.local
+**/secrets.json
+
+# Databases and local persistence
+**/*.db
+**/*.sqlite
+**/postgres-data/
+
+# OS specific files
+Thumbs.db
+.DS_Store
+
+# Temporary workspace directories
+/tmp_avatar_admin/
+/tmp_avatar_proxy_compare/
+/tmp_avatar_test/

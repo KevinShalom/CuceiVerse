@@ -1,0 +1,104 @@
+# ==========================================
+# Stage 1: Asset Downloader
+# ==========================================
+FROM alpine:3.18 AS assets
+RUN apk add --no-cache git bash coreutils findutils nodejs npm
+
+# Environment for Assets
+ARG ASSETS_REPO=https://github.com/sphynxkitten/nitro-assets.git
+ARG ASSETS_BRANCH=master
+
+WORKDIR /assets-init
+COPY assets-init/init.sh .
+COPY assets-init/optimize.js .
+RUN sed -i 's/\r$//' init.sh && chmod +x init.sh
+
+# Run the download script. It populates /data
+RUN ./init.sh
+
+# ==========================================
+# Stage 2: Imager Build (Re-target for Node 18)
+# ==========================================
+FROM node:18-bullseye AS imager-build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git python3 make g++ libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app/imager
+
+# Clone the repository instead of copying local files (which don't exist)
+RUN git clone --depth 1 https://github.com/billsonnn/nitro-imager.git .
+
+# Clean install to rebuild natives (canvas) for Node 18
+RUN npm install
+
+RUN npm run build
+
+# ==========================================
+# Stage 3: Web Build
+# ==========================================
+FROM node:18-bullseye AS web-build
+WORKDIR /app/web
+
+COPY web/package*.json ./
+RUN npm install
+
+COPY web/ .
+# Disable Next.js Telemetry during build
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+
+# ==========================================
+# Stage 4: Monolith Runner
+# ==========================================
+FROM node:18-bullseye AS runner
+
+# Install Runtime Dependencies for Canvas (Imager)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgif7 librsvg2-2 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# 1. Copy Assets from Stage 1
+COPY --from=assets /data /data
+# Ensure permissions
+RUN chmod -R 777 /data
+
+# 2. Copy Imager from Stage 2
+COPY --from=imager-build /app/imager/dist /app/imager/dist
+COPY --from=imager-build /app/imager/node_modules /app/imager/node_modules
+COPY --from=imager-build /app/imager/package.json /app/imager/package.json
+
+# 3. Copy Web from Stage 3
+COPY --from=web-build /app/web/.next /app/web/.next
+
+COPY --from=web-build /app/web/node_modules /app/web/node_modules
+COPY --from=web-build /app/web/package.json /app/web/package.json
+
+# 4. Entrypoint Script
+COPY monolith-entrypoint.sh /app/monolith-entrypoint.sh
+RUN sed -i 's/\r$//' /app/monolith-entrypoint.sh && chmod +x /app/monolith-entrypoint.sh
+
+# Environment Variables
+ENV NODE_ENV=production
+# Imager Configuration
+ENV API_HOST=0.0.0.0
+ENV API_PORT=3030
+ENV IMAGER_PATH=/imaging
+ENV AVATAR_SAVE_PATH=/data/render-cache
+ENV AVATAR_ACTIONS_URL=/data/nitro-assets/gamedata/json/HabboAvatarActions.json
+ENV AVATAR_FIGUREDATA_URL=/data/nitro-assets/gamedata/json/FigureData.json
+ENV AVATAR_FIGUREMAP_URL=/data/nitro-assets/gamedata/json/FigureMap.json
+ENV AVATAR_EFFECTMAP_URL=/data/nitro-assets/gamedata/json/EffectMap.json
+ENV AVATAR_ASSET_URL=/data/assets/%libname%.nitro
+
+# Web Configuration
+ENV PORT=3000
+# Important: Internal URL uses 127.0.0.1 to force IPv4 (avoids ::1 connection errors)
+ENV IMAGER_INTERNAL_URL=http://127.0.0.1:3030
+ENV FIGUREDATA_PATH=/data/nitro-assets/gamedata/json/FigureData.json
+
+EXPOSE 3000
+
+CMD ["/app/monolith-entrypoint.sh"]

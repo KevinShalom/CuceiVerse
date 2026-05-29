@@ -131,5 +131,5 @@ Este servicio está preparado para ser levantado rápidamente mediante contenedo
    ```bash
    docker compose up --build
    ```
-   *Nota: Esto iniciará el generador de avatares en el puerto configurado dentro de la receta de Docker.*
+   *Nota: Esto iniciará el generador de avatares en el puerto configurado dentro de Docker.*
 

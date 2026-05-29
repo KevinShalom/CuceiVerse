@@ -26,3 +26,11 @@ Thumbs.db
 /tmp_avatar_admin/
 /tmp_avatar_proxy_compare/
 /tmp_avatar_test/
+
+# Documentation and temporary university files
+*.docx
+*.pdf
+tramites_extracted.txt
+tramites_utf8.txt
+read_docx.ps1
+
